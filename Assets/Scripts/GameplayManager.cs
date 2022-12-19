@@ -202,6 +202,11 @@ public class GameplayManager : MonoBehaviourPunCallbacks
 				heart3[playerIndex].SetActive(false);
 				heart4[playerIndex].SetActive(false);
 				heart5[playerIndex].SetActive(false);
+				scoreCanvas[playerIndex].SetActive(false);
+				allHearts[playerIndex].SetActive(false);
+				graveUpright[playerIndex].SetActive(false);
+				graveDown[playerIndex].SetActive(true);
+				deterrentCount[playerIndex].transform.parent.parent.gameObject.SetActive(false);
 				if (PhotonNetwork.IsMasterClient)
         {
 					networkVar.UpdateIsGameOver(true);
@@ -306,21 +311,8 @@ public class GameplayManager : MonoBehaviourPunCallbacks
 	{
 		nonMainMenuAudioManager.StopBackgroundMusic();
 		audioManager.PlayGameOverSound();
-		scoreCanvas[localPlayerIndex].SetActive(false);
-		allHearts[localPlayerIndex].SetActive(false);
 		GameplayManager.gameIsOver = true;
-		graveUpright[localPlayerIndex].SetActive(false);
-		graveDown[localPlayerIndex].SetActive(true);
-		deterrentCount[localPlayerIndex].transform.parent.parent.gameObject.SetActive(false);
-		if (NetworkManager.isMultiplayer)
-		{
-			allHearts[otherPlayerIndex].SetActive(false);
-			scoreCanvas[otherPlayerIndex].SetActive(false);
-			graveUpright[otherPlayerIndex].SetActive(false);
-			graveDown[otherPlayerIndex].SetActive(true);
-			deterrentCount[otherPlayerIndex].transform.parent.parent.gameObject.SetActive(false);
-		}
-
+		
 		// give server a bit of time to make sure the final scores are synced before displaying gameover panel
 		StartCoroutine(MoveGameOverCanvasToStart());
 	}
