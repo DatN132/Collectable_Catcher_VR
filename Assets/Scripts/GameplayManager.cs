@@ -16,7 +16,7 @@ public class GameplayManager : MonoBehaviourPunCallbacks
 
 	private TextMeshProUGUI[] scoreText;
 	private TextMeshProUGUI[] deterrentCount;
-	private int health = 0;
+	public static int[] health;
 	/// <summary>
 	/// Public reference to indicate whether the game is still going on.
 	/// </summary>
@@ -84,6 +84,7 @@ public class GameplayManager : MonoBehaviourPunCallbacks
 		graveDown = new GameObject[2];
 		graveUpright = new GameObject[2];
 		scoreCanvas = new GameObject[2];
+		health = new int[2];
 		
 		if (PhotonNetwork.IsMasterClient)
 		{
@@ -116,6 +117,7 @@ public class GameplayManager : MonoBehaviourPunCallbacks
 		deterrentCanvas = tombstone.transform.Find("Deterrent_Bomb").GetChild(0).gameObject;
 		deterrentCount[localPlayerIndex] = deterrentCanvas.transform.Find("Deterrent Count").GetComponent<TextMeshProUGUI>();
 		scores[localPlayerIndex] = 0;
+		health[localPlayerIndex] = 0;
 		scoreText[localPlayerIndex].text = $"{scores[localPlayerIndex]}";
 		gameStreak = 0;
 		deterrentsAvailable[localPlayerIndex] = 0;
@@ -138,23 +140,11 @@ public class GameplayManager : MonoBehaviourPunCallbacks
 			heart4[otherPlayerIndex] = otherHearts.Find("Heart 4").gameObject;
 			heart5[otherPlayerIndex] = otherHearts.Find("Heart 5").gameObject;
 			allHearts[otherPlayerIndex] = otherHearts.gameObject;
+			health[otherPlayerIndex] = 0;
 			photonView.RPC("SyncScore", RpcTarget.All, scores[localPlayerIndex], localPlayerIndex);
 		}
-		
-		switch(Gameplay.menuDifficulty) {
-			case Difficulty.Easy:
-				photonView.RPC("SyncHearts", RpcTarget.All, 5, localPlayerIndex);
-				health = 5;
-				break;
-			case Difficulty.Medium:
-				photonView.RPC("SyncHearts", RpcTarget.All, 3, localPlayerIndex);
-				health = 3;
-				break;
-			case Difficulty.Hard:
-				photonView.RPC("SyncHearts", RpcTarget.All, 1, localPlayerIndex);
-				health = 1;
-				break;
-		}
+
+		photonView.RPC("SyncHearts", RpcTarget.All, 3, localPlayerIndex);
 
 		if (streakToDeterrent == 0)
 		{
@@ -203,6 +193,7 @@ public class GameplayManager : MonoBehaviourPunCallbacks
 	[PunRPC]
 	private void SyncHearts(int heartCount, int playerIndex)
 	{
+		health[playerIndex] = heartCount;
 		switch(heartCount)
 		{
 			case 0: 
@@ -211,6 +202,10 @@ public class GameplayManager : MonoBehaviourPunCallbacks
 				heart3[playerIndex].SetActive(false);
 				heart4[playerIndex].SetActive(false);
 				heart5[playerIndex].SetActive(false);
+				if (PhotonNetwork.IsMasterClient)
+        {
+					networkVar.UpdateIsGameOver(true);
+				}
 				break;
 			case 1:
 				heart1[playerIndex].SetActive(false);
@@ -281,12 +276,11 @@ public class GameplayManager : MonoBehaviourPunCallbacks
 			Instantiate(minusSign, new Vector3(5f, 0.45f, -8.3f), Quaternion.identity);
 		}
 		
-		health--;
-		if (health == 0)
+		if (health[localPlayerIndex] == 0)
 		{
-			networkVar.UpdateIsGameOver(true);
+			return;
 		}
-		photonView.RPC("SyncHearts", RpcTarget.All, health, localPlayerIndex);
+		photonView.RPC("SyncHearts", RpcTarget.All, health[localPlayerIndex] - 1, localPlayerIndex);
 		gameStreak = 0;
 	}
 
@@ -298,12 +292,11 @@ public class GameplayManager : MonoBehaviourPunCallbacks
 		if (GameplayManager.gameIsOver) {
 			return;
 		}
-		if (health == 5)
+		if (health[localPlayerIndex] == 5)
 		{
 			return;
 		}
-		health++;
-		photonView.RPC("SyncHearts", RpcTarget.All, health, localPlayerIndex);
+		photonView.RPC("SyncHearts", RpcTarget.All, health[localPlayerIndex] + 1, localPlayerIndex);
 	}
 	
 	/// <summary>

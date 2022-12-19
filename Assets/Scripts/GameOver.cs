@@ -124,17 +124,28 @@ public class GameOver : MonoBehaviour {
 					{
 						scoreText.text = "Other Player Left\nYou Win!!!";
 					}
-					else if (GameplayManager.scores[localPlayerIndex] > GameplayManager.scores[otherPlayerIndex])
+					else if (GameplayManager.health[localPlayerIndex] > GameplayManager.health[otherPlayerIndex])
 					{
 						scoreText.text = "You Win!!!";
 					}
-					else if (GameplayManager.scores[localPlayerIndex] < GameplayManager.scores[otherPlayerIndex])
+					else if (GameplayManager.health[localPlayerIndex] < GameplayManager.health[otherPlayerIndex])
 					{
 						scoreText.text = "You Lose!!!";
 					}
 					else
 					{
-						scoreText.text = "Game Tied";
+						if (GameplayManager.scores[localPlayerIndex] > GameplayManager.scores[otherPlayerIndex])
+						{
+							scoreText.text = "You Win!!!";
+						}
+						else if (GameplayManager.scores[localPlayerIndex] < GameplayManager.scores[otherPlayerIndex])
+						{
+							scoreText.text = "You Lose!!!";
+						}
+						else
+						{
+							scoreText.text = "Game Tied";
+						}
 					}
 				}
 				else

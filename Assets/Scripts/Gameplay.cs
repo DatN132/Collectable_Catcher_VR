@@ -79,12 +79,12 @@ public class Gameplay : MonoBehaviourPunCallbacks
         switch(menuDifficulty) 
         {
             case Difficulty.Easy:
-                startingDifficulty = 2.1f;
-                spawnTime = 3.40f;
+                startingDifficulty = 2.5f;
+                spawnTime = 3.00f;
                 break;
             case Difficulty.Medium:
-                startingDifficulty = 3.2f;
-                spawnTime = 2.7f;
+                startingDifficulty = 3.7f;
+                spawnTime = 2.3f;
                 break;
             case Difficulty.Hard:
                 startingDifficulty = 4.3f;
