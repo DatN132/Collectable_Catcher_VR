@@ -2,14 +2,14 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.XR;
-using Photon.Pun;
+using Fusion;
 using UnityEngine.XR.Interaction.Toolkit;
 using Unity.XR.CoreUtils;
 
 /// <summary>
 /// The class that controls the movement and animation of the networked player
 /// </summary>
-public class NetworkPlayer : MonoBehaviour
+public class NetworkPlayer : NetworkBehaviour
 {
     /// <summary>
     /// Variable that holds the refernce to the user's left hand prefab
@@ -24,7 +24,6 @@ public class NetworkPlayer : MonoBehaviour
     public Transform rightHand;
 
     private Animator rightHandAnimator;
-    private PhotonView photonView;
     private Transform leftHandOrigin;
     private Animator leftHandOriginAnimator;
     private Transform rightHandOrigin;
@@ -32,7 +31,6 @@ public class NetworkPlayer : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
-        photonView = GetComponent<PhotonView>();
         XROrigin origin = FindObjectOfType<XROrigin>();
         leftHandOrigin = origin.transform.Find("Camera Offset/LeftHand Controller");
         leftHandOriginAnimator = leftHandOrigin.GetComponentInChildren<Animator>();
@@ -41,7 +39,7 @@ public class NetworkPlayer : MonoBehaviour
         rightHandOriginAnimator = rightHandOrigin.GetComponentInChildren<Animator>();
         rightHandAnimator = rightHand.GetComponentInChildren<Animator>();
 
-        if (photonView.IsMine)
+        if (Object.HasStateAuthority)
         {
             foreach (var item in GetComponentsInChildren<Renderer>())
             {
@@ -53,7 +51,7 @@ public class NetworkPlayer : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        if (photonView.IsMine)
+        if (Object.HasStateAuthority)
         {
             MapPosition(leftHand, leftHandOrigin);
             MapPosition(rightHand, rightHandOrigin);

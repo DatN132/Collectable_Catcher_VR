@@ -1,13 +1,13 @@
 using UnityEngine;
 using PathCreation;
-using Photon.Pun;
+using Fusion;
 
 // Moves along a path at constant speed.
 // Depending on the end of path instruction, will either loop, reverse, or stop at the end of the path.
 /// <summary>
 /// This class moved the object along a path at a constant speed.
 /// </summary>
-public class PathFollower : MonoBehaviour
+public class PathFollower : NetworkBehaviour
 {
     /// <summary>
     /// Reference to the path creator object.
@@ -29,11 +29,11 @@ public class PathFollower : MonoBehaviour
         networkVar = GameObject.Find("Network Interaction Statuses").GetComponent<NetworkVariablesAndReferences>();
     }
 
-    void Update()
+    public override void FixedUpdateNetwork()
     {
         if (pathCreator != null && !networkVar.isGameOver)
         {
-            distanceTravelled += speed * Time.deltaTime;
+            distanceTravelled += speed * Runner.DeltaTime;
             transform.position = pathCreator.path.GetPointAtDistance(distanceTravelled, endOfPathInstruction);
             if (!gameObject.tag.Equals("Heart"))
             {
@@ -43,13 +43,9 @@ public class PathFollower : MonoBehaviour
         else if (networkVar.isGameOver)
         {
             // Master / Client destroy their own object
-            if (this.gameObject.GetComponent<CollectableBehavior>().playerIndex == 1 && !PhotonNetwork.IsMasterClient)
+            if (Object.HasStateAuthority)
             {
-                PhotonNetwork.Destroy(this.gameObject);
-            }
-            else if (this.gameObject.GetComponent<CollectableBehavior>().playerIndex == 0 && PhotonNetwork.IsMasterClient)
-            {
-                PhotonNetwork.Destroy(this.gameObject);
+                Runner.Despawn(Object);
             }
         }
     }

@@ -2,13 +2,12 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using PathCreation;
-using Photon.Pun;
-using Photon.Realtime;
+using Fusion;
 
 /// <summary>
 /// This class handles the gameplay behaviors, i.e. when to spawn objects.
 /// </summary>
-public class Gameplay : MonoBehaviourPunCallbacks
+public class Gameplay : NetworkBehaviour
 {
     private float spawnTime = 1.0f;
     private float startingDifficulty;
@@ -41,7 +40,7 @@ public class Gameplay : MonoBehaviourPunCallbacks
     /// </summary>
     public EndOfPathInstruction end;
     private float difficulty;
-    private GameObject a;
+    private NetworkObject a;
     private float currentTime;
     private float previousTime;
     private NetworkVariablesAndReferences networkVar;
@@ -63,9 +62,8 @@ public class Gameplay : MonoBehaviourPunCallbacks
     /// <summary>
     /// Override parent method. This method sets difficulties and set private variables to default values.
     /// </summary>
-    public override void OnEnable()
+    void OnEnable()
     {
-        base.OnEnable();
         networkVar = GameObject.Find("Network Interaction Statuses").GetComponent<NetworkVariablesAndReferences>();
         gameplayManager = FindObjectOfType<GameplayManager>();
         sendingDeterrentMaterial = Resources.Load<Material>("Sending Bomb Material");
@@ -93,7 +91,7 @@ public class Gameplay : MonoBehaviourPunCallbacks
         }
 
         // determine send time and send settings on master only
-        if(PhotonNetwork.IsMasterClient)
+        if(Runner.IsSinglePlayer || Runner.IsSharedModeMasterClient)
         {
             localPlayerIndex = 0;
             StartCoroutine(collectableWave());
@@ -105,11 +103,11 @@ public class Gameplay : MonoBehaviourPunCallbacks
         heartSpawnerCRRunning = false;
     }
 
-    private void Awake()
+    private void Start()
     {
-        if (PhotonNetwork.IsMasterClient)
+        if (Runner.IsSinglePlayer || Runner.IsSharedModeMasterClient)
         {
-            photonView.RPC("setDifficulty", RpcTarget.AllBuffered, MainMenu.difficulty);
+            RPC_setDifficulty(MainMenu.difficulty);
         }
     }
 
@@ -132,7 +130,7 @@ public class Gameplay : MonoBehaviourPunCallbacks
             yield return new WaitForSeconds(spawnTime);
             int deterrentRoll = Random.Range(0, 100);
             int chosenPath = Random.Range(0, 3);
-            photonView.RPC("spawnCollectable", RpcTarget.AllViaServer, deterrentRoll, chosenPath, difficulty, -1);
+            RPC_spawnCollectable(deterrentRoll, chosenPath, difficulty, -1);
             if (!heartSpawnerCRRunning)
             {
                 heartSpawnerCRRunning = true;
@@ -148,7 +146,7 @@ public class Gameplay : MonoBehaviourPunCallbacks
             {
                 yield return new WaitForSeconds(Random.Range(0f,35f));
                 int chosenPath = Random.Range(0, 3);
-                photonView.RPC("spawnHeart", RpcTarget.AllViaServer, chosenPath);
+                RPC_spawnHeart(chosenPath);
             }
             else
             {
@@ -180,7 +178,7 @@ public class Gameplay : MonoBehaviourPunCallbacks
         // maybe change deterrent mat a bit to differentiate
         // change mat in spawnCollectable
         int target_player;
-        if (PhotonNetwork.IsMasterClient)
+        if (Runner.IsSinglePlayer || Runner.IsSharedModeMasterClient)
         {
             target_player = 1;
         }
@@ -189,35 +187,35 @@ public class Gameplay : MonoBehaviourPunCallbacks
             target_player = 0;
         }
         int chosenPath = Random.Range(0, 3);
-        photonView.RPC("spawnCollectable", RpcTarget.All, 0, chosenPath, difficulty, target_player);
+        RPC_spawnCollectable(0, chosenPath, difficulty, target_player);
     }
 
-    [PunRPC]
-    private void setDifficulty(Difficulty newDifficulty)
+    [Rpc(sources: RpcSources.All, targets: RpcTargets.All)]
+    private void RPC_setDifficulty(Difficulty newDifficulty)
     {
         menuDifficulty = newDifficulty;
     }
 
-    [PunRPC]
-    private void spawnCollectable(int deterrentRoll, int chosenPath, float synced_difficulty, int target_player = -1)
+    [Rpc(sources: RpcSources.All, targets: RpcTargets.All)]
+    private void RPC_spawnCollectable(int deterrentRoll, int chosenPath, float synced_difficulty, int target_player = -1)
     {
 		if (GameplayManager.gameIsOver) {
 			return;
 		}
 
         // update difficulty for client
-        if (!PhotonNetwork.IsMasterClient)
+        if (!Runner.IsSinglePlayer && !Runner.IsSharedModeMasterClient)
         {
             difficulty = synced_difficulty;
         }
-		if (target_player == -1 || (target_player == 0 && PhotonNetwork.IsMasterClient) || (target_player == 1 && !PhotonNetwork.IsMasterClient))
+		if (target_player == -1 || (target_player == 0 && Runner.IsSharedModeMasterClient) || (target_player == 1 && !Runner.IsSharedModeMasterClient))
         {
             if (deterrentRoll < (int)deterrentChance) {
-                a = PhotonNetwork.Instantiate("Deterrent_Bomb", transform.position, new Quaternion(-90,0,0,0)) as GameObject;
+                a = Runner.Spawn((GameObject)Resources.Load("Deterrent_Bomb", typeof(GameObject)), transform.position, new Quaternion(-90,0,0,0), Runner.LocalPlayer);
                 a.tag = "Deterrent";
             }
             else {
-                a = PhotonNetwork.Instantiate("Collectable", transform.position, new Quaternion(-90,0,0,0)) as GameObject;
+                a = Runner.Spawn((GameObject)Resources.Load("Collectable", typeof(GameObject)), transform.position, new Quaternion(-90,0,0,0), Runner.LocalPlayer);
                 a.tag = "Collectable";
             }
             // Since object is spawned using PhotonNetwork.Instantiate, let photon handle viewID assignment
@@ -226,7 +224,7 @@ public class Gameplay : MonoBehaviourPunCallbacks
             // Change mat when player send deterrent intentially
             if (target_player != -1)
             {
-                photonView.RPC("SetRedDeterrentSkin", RpcTarget.All, a.GetPhotonView().ViewID);
+                RPC_SetRedDeterrentSkin(a.Id);
             }
             ///////////////////////////////////////////////////////////////////////////////////////////////////////
             
@@ -238,7 +236,7 @@ public class Gameplay : MonoBehaviourPunCallbacks
             
             // master uses path left, path, right.
             // client uses path left2, path2, right2
-            if (PhotonNetwork.IsMasterClient)
+            if (Runner.IsSinglePlayer || Runner.IsSharedModeMasterClient)
             {
                 // set this to 0 or 1for multiplayer
                 script2.playerIndex = 0;
@@ -266,18 +264,18 @@ public class Gameplay : MonoBehaviourPunCallbacks
                     script.pathCreator = rightPath2;
                 }
             }
-            a.SetActive(true);
+            a.gameObject.SetActive(true);
         }
     }
 
-    [PunRPC]
-    private void spawnHeart(int chosenPath)
+    [Rpc(sources: RpcSources.All, targets: RpcTargets.All)]
+    private void RPC_spawnHeart(int chosenPath)
     {
         if (GameplayManager.gameIsOver || difficulty == 0) 
         {
 			return;
 		}
-        a = PhotonNetwork.Instantiate("Heart", transform.position, new Quaternion(0,90,0,0)) as GameObject;
+        a = Runner.Spawn((GameObject)Resources.Load("Heart", typeof(GameObject)), transform.position, new Quaternion(0,90,0,0), Runner.LocalPlayer);
         a.tag = "Heart";
 
         var script = a.GetComponent<PathFollower>();
@@ -288,7 +286,7 @@ public class Gameplay : MonoBehaviourPunCallbacks
         
         // master uses path left, path, right.
         // client uses path left2, path2, right2
-        if (PhotonNetwork.IsMasterClient)
+        if (Runner.IsSinglePlayer || Runner.IsSharedModeMasterClient)
         {
             // set this to 0 or 1for multiplayer
             script2.playerIndex = 0;
@@ -316,15 +314,17 @@ public class Gameplay : MonoBehaviourPunCallbacks
                 script.pathCreator = rightPath2;
             }
         }
-        a.SetActive(true);
+        a.gameObject.SetActive(true);
         Debug.Log("Heart Spawned");
         Debug.Log("Difficulty: " + difficulty);
     }
 
-    [PunRPC]
-    private void SetRedDeterrentSkin(int viewID)
+    [Rpc(sources: RpcSources.All, targets: RpcTargets.All)]
+    private void RPC_SetRedDeterrentSkin(NetworkId id)
     {
-        PhotonView.Find(viewID).gameObject.GetComponent<MeshRenderer>().material = sendingDeterrentMaterial;
+        NetworkObject obj;
+        Runner.TryFindObject(id, out obj);
+        obj.gameObject.GetComponent<MeshRenderer>().material = sendingDeterrentMaterial;
     }
 
 }

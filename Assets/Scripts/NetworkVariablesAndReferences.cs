@@ -1,16 +1,16 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using Photon.Pun;
-using Photon.Realtime;
+using Fusion;
 using TMPro;
+using System.Linq;
 
 
 /// <summary>
 /// Class that holds everything and anything networked. This class keeps variables that others can reference.
 /// This class also sync variable changes across the network.
 /// </summary>
-public class NetworkVariablesAndReferences : MonoBehaviourPunCallbacks, IPunObservable
+public class NetworkVariablesAndReferences : NetworkBehaviour
 {
     /// <summary>
     /// Keep reference of how many player have grabbed their basket. Start the game if the number
@@ -21,22 +21,22 @@ public class NetworkVariablesAndReferences : MonoBehaviourPunCallbacks, IPunObse
     /// <summary>
     /// Store the view ID of each network player prefab
     /// </summary>
-    public int[] playerIDs = {-1, -1};
+    public NetworkId[] playerIDs = new NetworkId[2];
 
     /// <summary>
     /// Store the view ID of each network basket prefab
     /// </summary>
-    public int[] basketIDs = {-1, -1};
+    public NetworkId[] basketIDs = new NetworkId[2];
 
     /// <summary>
     /// Store the view ID of each network shadow basket prefab
     /// </summary>
-    public int[] shadowBasketIDs = {-1, -1};
+    public NetworkId[] shadowBasketIDs = new NetworkId[2];
 
     /// <summary>
     /// Store the view ID of each network gamescore/tombstone prefab
     /// </summary>
-    public int[] tombstoneIDs = {-1, -1};
+    public NetworkId[] tombstoneIDs = new NetworkId[2];
 
     /// <summary>
     /// Hold the reference to game over state. Set by gameplay manager
@@ -55,20 +55,14 @@ public class NetworkVariablesAndReferences : MonoBehaviourPunCallbacks, IPunObse
 
     void Awake()
     {
-        // if it gets laggy, decrease these
-        // default sendRate = 30 times/sec
-        // default serializationrate = 10 times/sec
-        PhotonNetwork.SerializationRate = 10;
-        PhotonNetwork.SendRate = 45;
         gameStarted = false;
         isGameOver = false;
-        Debug.Log("Setting photon send rate");
     }
 
     // Start is called before the first frame update
     void Start()
     {
-        roomCapacity = PhotonNetwork.CurrentRoom.MaxPlayers;
+        roomCapacity = Runner.ActivePlayers.Count();
         gameplay = FindObjectOfType<Gameplay>();
         gameplayManager = FindObjectOfType<GameplayManager>();
         if (gameplayManager == null)
@@ -77,11 +71,11 @@ public class NetworkVariablesAndReferences : MonoBehaviourPunCallbacks, IPunObse
         }
         isGameOver = false;
         
-        if(PhotonNetwork.IsMasterClient && NetworkManager.isMultiplayer)
+        if(Runner.IsSharedModeMasterClient && NetworkManager.isMultiplayer)
         {
-            photonView.RPC("SyncIsMultiplayer", RpcTarget.AllBuffered, NetworkManager.isMultiplayer);
+            RPC_SyncIsMultiplayer(NetworkManager.isMultiplayer);
         }
-        if (PhotonNetwork.IsMasterClient)
+        if (Runner.IsSinglePlayer || Runner.IsSharedModeMasterClient)
 		{
 			localPlayerIndex = 0;
 			otherPlayerIndex = 1;
@@ -92,7 +86,8 @@ public class NetworkVariablesAndReferences : MonoBehaviourPunCallbacks, IPunObse
 			otherPlayerIndex = 0;
 		}
         countDown = new TextMeshProUGUI[2];
-        GameObject tombstone = PhotonView.Find(tombstoneIDs[localPlayerIndex]).gameObject;
+        NetworkObject tombstone;
+        Runner.TryFindObject(tombstoneIDs[localPlayerIndex], out tombstone);
         countDown[localPlayerIndex]  = tombstone.transform.Find("Canvas").Find("Count Down Value Label").GetComponent<TextMeshProUGUI>();
         _audioManager = GameObject.Find("SoundManager").GetComponent<AudioManager>();
     }
@@ -109,25 +104,26 @@ public class NetworkVariablesAndReferences : MonoBehaviourPunCallbacks, IPunObse
         // update rpc only if needed. Don't polute the data stream
         if (!gameStarted)
         {
-            roomCapacity = PhotonNetwork.CurrentRoom.MaxPlayers;
+            roomCapacity = Runner.ActivePlayers.Count();
             if(roomCapacity > 0 && (roomCapacity == playerGrabbed))
             {
                 gameStarted = true;
-                if (PhotonNetwork.IsMasterClient)
+                if (Runner.IsSinglePlayer || Runner.IsSharedModeMasterClient)
                 {
                     StartCoroutine(StartCountDown());
                 }
             }
         }
-        if (PhotonNetwork.CurrentRoom.PlayerCount > 1 && tombstoneIDs[otherPlayerIndex] != -1 && !countDown[otherPlayerIndex])
+        if (Runner.ActivePlayers.Count() > 1 && tombstoneIDs[otherPlayerIndex].IsValid && !countDown[otherPlayerIndex])
 		{
-			GameObject otherTombstone = PhotonView.Find(tombstoneIDs[otherPlayerIndex]).gameObject;
+			NetworkObject otherTombstone;
+            Runner.TryFindObject(tombstoneIDs[otherPlayerIndex], out otherTombstone);
 			countDown[otherPlayerIndex]  = otherTombstone.transform.Find("Canvas").Find("Count Down Value Label").GetComponent<TextMeshProUGUI>();
 		}
     }
 
-    [PunRPC]
-	private void SyncCountDown(bool toggleDisable, int number, int playerIndex)
+    [Rpc(sources: RpcSources.All, targets: RpcTargets.All)]
+	private void RPC_SyncCountDown(bool toggleDisable, int number, int playerIndex)
 	{
         countDown[playerIndex].gameObject.SetActive(!toggleDisable);
 		countDown[playerIndex].text = $"{number}";
@@ -143,20 +139,20 @@ public class NetworkVariablesAndReferences : MonoBehaviourPunCallbacks, IPunObse
         int count = 3;
         while (count >= 0)
         {
-            photonView.RPC("SyncCountDown", RpcTarget.All, false, count, 0);
+            RPC_SyncCountDown(false, count, 0);
             if (roomCapacity == 2)
             {
-                photonView.RPC("SyncCountDown", RpcTarget.All, false, count, 1);
+                RPC_SyncCountDown(false, count, 1);
             }
             count--;
             yield return new WaitForSeconds(1);
         }
-        photonView.RPC("SyncCountDown", RpcTarget.All, true, count, 0);
+        RPC_SyncCountDown(true, count, 0);
         if (roomCapacity == 2)
         {
-            photonView.RPC("SyncCountDown", RpcTarget.All, true, count, 1);
+            RPC_SyncCountDown(true, count, 1);
         }
-        photonView.RPC("StartGameplay", RpcTarget.All);
+        RPC_StartGameplay();
         Debug.Log("Starting game");
     }
 
@@ -167,7 +163,7 @@ public class NetworkVariablesAndReferences : MonoBehaviourPunCallbacks, IPunObse
     /// </summary>
     public void UpdatePlayerGrabbed()
     {
-        photonView.RPC("SyncPlayerGrabbed", RpcTarget.AllBuffered);
+        RPC_SyncPlayerGrabbed();
         Debug.Log("Syncing # Player Grabbed");
     }
 
@@ -176,9 +172,9 @@ public class NetworkVariablesAndReferences : MonoBehaviourPunCallbacks, IPunObse
     /// </summary>
     /// <param name="newData">Photonview ID of the player</param>
     /// <param name="playerIndex">Player index. 0 is Master, 1 is client</param>
-    public void UpdatePlayerIDs(int newData, int playerIndex)
+    public void UpdatePlayerIDs(NetworkId newData, int playerIndex)
     {
-        photonView.RPC("SyncPlayerIDs", RpcTarget.AllBuffered, newData, playerIndex);
+        RPC_SyncPlayerIDs(newData, playerIndex);
         Debug.Log("Syncing Player IDs");
     }
 
@@ -187,9 +183,9 @@ public class NetworkVariablesAndReferences : MonoBehaviourPunCallbacks, IPunObse
     /// </summary>
     /// <param name="newData">Photonview ID of the basket</param>
     /// <param name="playerIndex">Player index. 0 is Master, 1 is client</param>
-    public void UpdateBasketIDs(int newData, int playerIndex)
+    public void UpdateBasketIDs(NetworkId newData, int playerIndex)
     {
-        photonView.RPC("SyncBasketIDs", RpcTarget.AllBuffered, newData, playerIndex);
+        RPC_SyncBasketIDs(newData, playerIndex);
         Debug.Log("Syncing Basket IDs");
     }
 
@@ -198,9 +194,9 @@ public class NetworkVariablesAndReferences : MonoBehaviourPunCallbacks, IPunObse
     /// </summary>
     /// <param name="newData">Photonview ID of the basket</param>
     /// <param name="playerIndex">Player index. 0 is Master, 1 is client</param>
-    public void UpdateShadowBasketIDs(int newData, int playerIndex)
+    public void UpdateShadowBasketIDs(NetworkId newData, int playerIndex)
     {
-        photonView.RPC("SyncShadowBasketIDs", RpcTarget.AllBuffered, newData, playerIndex);
+        RPC_SyncShadowBasketIDs(newData, playerIndex);
         Debug.Log("Syncing Basket IDs");
     }
 
@@ -209,9 +205,9 @@ public class NetworkVariablesAndReferences : MonoBehaviourPunCallbacks, IPunObse
     /// </summary>
     /// <param name="newData">Photonview ID of the tombstone</param>
     /// <param name="playerIndex">Player index. 0 is Master, 1 is client</param>
-    public void UpdateTombstoneIDs(int newData, int playerIndex)
+    public void UpdateTombstoneIDs(NetworkId newData, int playerIndex)
     {
-        photonView.RPC("SyncTombstoneIDs", RpcTarget.AllBuffered, newData, playerIndex);
+        RPC_SyncTombstoneIDs(newData, playerIndex);
         Debug.Log("Syncing Tombstone IDs");
     }
 
@@ -221,47 +217,47 @@ public class NetworkVariablesAndReferences : MonoBehaviourPunCallbacks, IPunObse
     /// <param name="newData">Game over state</param>
     public void UpdateIsGameOver(bool newData)
     {
-        photonView.RPC("SyncIsGameOver", RpcTarget.AllBuffered, newData);
+        RPC_SyncIsGameOver(newData);
         Debug.Log("Syncing isGameOver");
     }
 
-    [PunRPC]
-    private void StartGameplay()
+    [Rpc(sources: RpcSources.All, targets: RpcTargets.All)]
+    private void RPC_StartGameplay()
     {
         gameplayManager.enabled = true;
         gameplay.enabled = true;
-        if (PhotonNetwork.IsMasterClient)
+        if (Runner.IsSinglePlayer || Runner.IsSharedModeMasterClient)
         {
-            PhotonNetwork.CurrentRoom.IsOpen = false;
+            Runner.SessionInfo.IsOpen = false;
         }
     }
 
-    [PunRPC]
-    private void SyncPlayerIDs(int newData, int playerIndex)
+    [Rpc(sources: RpcSources.All, targets: RpcTargets.All)]
+    private void RPC_SyncPlayerIDs(NetworkId newData, int playerIndex)
     {
         playerIDs[playerIndex] = newData;
     }
 
-    [PunRPC]
-    private void SyncBasketIDs(int newData, int playerIndex)
+    [Rpc(sources: RpcSources.All, targets: RpcTargets.All)]
+    private void RPC_SyncBasketIDs(NetworkId newData, int playerIndex)
     {
         basketIDs[playerIndex] = newData;
     }
 
-    [PunRPC]
-    private void SyncShadowBasketIDs(int newData, int playerIndex)
+    [Rpc(sources: RpcSources.All, targets: RpcTargets.All)]
+    private void RPC_SyncShadowBasketIDs(NetworkId newData, int playerIndex)
     {
         shadowBasketIDs[playerIndex] = newData;
     }
 
-    [PunRPC]
-    private void SyncTombstoneIDs(int newData, int playerIndex)
+    [Rpc(sources: RpcSources.All, targets: RpcTargets.All)]
+    private void RPC_SyncTombstoneIDs(NetworkId newData, int playerIndex)
     {
         tombstoneIDs[playerIndex] = newData;
     }
 
-    [PunRPC]
-    private void SyncIsGameOver(bool newData)
+    [Rpc(sources: RpcSources.All, targets: RpcTargets.All)]
+    private void RPC_SyncIsGameOver(bool newData)
     {
         isGameOver = newData;
         if (isGameOver)
@@ -270,52 +266,15 @@ public class NetworkVariablesAndReferences : MonoBehaviourPunCallbacks, IPunObse
         }
     }
 
-    [PunRPC]
-    private void SyncIsMultiplayer(bool newData)
+    [Rpc(sources: RpcSources.All, targets: RpcTargets.All)]
+    private void RPC_SyncIsMultiplayer(bool newData)
     {
         NetworkManager.isMultiplayer = newData;
     }
 
-    [PunRPC]
-    private void SyncPlayerGrabbed()
+    [Rpc(sources: RpcSources.All, targets: RpcTargets.All)]
+    private void RPC_SyncPlayerGrabbed()
     {
         playerGrabbed++;
-    }
-
-    /// <summary>
-    /// Send and receive data with the network via Photon View.
-    /// Put all variables that need to be synced regularly here.
-    /// Send and receive order must match
-    /// </summary>
-    /// <param name="stream">In/Out datastream</param>
-    /// <param name="info">General message information like sent and received time</param>
-    public void OnPhotonSerializeView(PhotonStream stream, PhotonMessageInfo info)
-    {
-        if (stream.IsWriting)
-        {
-            // stream.SendNext(playerGrabbed);
-            // stream.SendNext(playerIDs[0]);
-            // stream.SendNext(playerIDs[1]);
-            // stream.SendNext(basketIDs[0]);
-            // stream.SendNext(basketIDs[1]);
-            // stream.SendNext(isGameOver);
-        }
-        else if (stream.IsReading)
-        {
-            // IsChanged<int>((int)stream.ReceiveNext(),ref playerGrabbed);
-            // IsChanged<int>((int)stream.ReceiveNext(),ref playerIDs[0]);
-            // IsChanged<int>((int)stream.ReceiveNext(),ref playerIDs[1]);
-            // IsChanged<int>((int)stream.ReceiveNext(),ref basketIDs[0]);
-            // IsChanged<int>((int)stream.ReceiveNext(),ref basketIDs[1]);
-            // IsChanged<bool>((bool)stream.ReceiveNext(),ref isGameOver);
-        }
-    }
-
-    private void IsChanged<T>(T newData, ref T oldData)
-    {
-        if (Comparer<T>.Default.Compare(newData, oldData) != 0)
-        {
-            oldData = newData;
-        }
     }
 }

@@ -1,8 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using Photon.Pun;
-using Photon.Realtime;
+using Fusion;
 using UnityEngine.XR.Interaction.Toolkit;
 
 // Change scorekeeping multiplier
@@ -12,7 +11,7 @@ using UnityEngine.XR.Interaction.Toolkit;
 /// <summary>
 /// This class handles that collision behaviors of collectables and deterrents.
 /// </summary>
-public class CollectableBehavior : MonoBehaviourPunCallbacks
+public class CollectableBehavior : NetworkBehaviour, INetworkInput
 {
     //public GameObject GreenParticleGameObject;
     private MeshRenderer _basket = null;
@@ -76,9 +75,11 @@ public class CollectableBehavior : MonoBehaviourPunCallbacks
 
         // view id might now be available at this time
         // set by gameplay with some logic
-        if (networkVar.basketIDs[playerIndex] > 0)
+        if (networkVar.basketIDs[playerIndex].IsValid)
         {
-            _basket = PhotonView.Find(networkVar.basketIDs[playerIndex]).transform.GetChild(0).GetComponent<MeshRenderer>();
+            NetworkObject obj;
+            Runner.TryFindObject(networkVar.basketIDs[playerIndex], out obj);
+            _basket = obj.transform.GetChild(0).GetComponent<MeshRenderer>();
             _rim = _basket.transform.GetChild(0).GetComponent<MeshRenderer>();
         }
         collided = false;
@@ -102,9 +103,11 @@ public class CollectableBehavior : MonoBehaviourPunCallbacks
         else
         {
             // view id might now be available at this time
-            if (networkVar.basketIDs[playerIndex] > 0)
+            if (networkVar.basketIDs[playerIndex].IsValid)
             {
-                _basket = PhotonView.Find(networkVar.basketIDs[playerIndex]).transform.GetChild(0).GetComponent<MeshRenderer>();
+                NetworkObject obj;
+                Runner.TryFindObject(networkVar.basketIDs[playerIndex], out obj);
+                _basket = obj.transform.GetChild(0).GetComponent<MeshRenderer>();
                 _rim = _basket.transform.GetChild(0).GetComponent<MeshRenderer>();
             }
         }
@@ -127,9 +130,9 @@ public class CollectableBehavior : MonoBehaviourPunCallbacks
             }
             else if (other.gameObject.tag.Equals("Collectable") && gameObject.tag.Equals("Deterrent"))
             {
-                GameObject explo = PhotonNetwork.Instantiate("ExplosionEffect", gameObject.transform.position, Quaternion.Euler(-90, 0, 0));
-                explo.SetActive(true);
-                if (photonView.IsMine)
+                NetworkObject explo = Runner.Spawn((GameObject)Resources.Load("ExplosionEffect", typeof(GameObject)), gameObject.transform.position, Quaternion.Euler(-90, 0, 0), Runner.LocalPlayer);
+                explo.gameObject.SetActive(true);
+                if (Object.HasStateAuthority)
                 {
                     _audioManager.PlayBombSound();
                 }
@@ -138,7 +141,7 @@ public class CollectableBehavior : MonoBehaviourPunCallbacks
             {
                 _basket.material = successBasketMaterial;
                 _rim.material = successRimMaterial;
-                if (photonView.IsMine)
+                if (Object.HasStateAuthority)
                 {
                     timePassed = 0;
                     _audioManager.PlayCollectSound();
@@ -147,11 +150,11 @@ public class CollectableBehavior : MonoBehaviourPunCallbacks
             }
             else if (other.gameObject.tag.Equals("InnerBasket") && gameObject.tag.Equals("Deterrent"))
             {
-                GameObject explo = PhotonNetwork.Instantiate("ExplosionEffect", gameObject.transform.position, Quaternion.Euler(-90, 0, 0));
-                explo.SetActive(true);
+                NetworkObject explo = Runner.Spawn((GameObject)Resources.Load("ExplosionEffect", typeof(GameObject)), gameObject.transform.position, Quaternion.Euler(-90, 0, 0), Runner.LocalPlayer);
+                explo.gameObject.SetActive(true);
                 _basket.material = failureBasketMaterial;
                 _rim.material = failureRimMaterial;
-                if (photonView.IsMine)
+                if (Object.HasStateAuthority)
                 {
                     _audioManager.PlayBombSound();
                     foreach (XRDirectInteractor interactor in handInteractors)
@@ -165,7 +168,7 @@ public class CollectableBehavior : MonoBehaviourPunCallbacks
             {
                 _basket.material = successBasketMaterial;
                 _rim.material = successRimMaterial;
-                if (photonView.IsMine)
+                if (Object.HasStateAuthority)
                 {
                     timePassed = 0;
                     // Change to play heart caught sound
@@ -179,7 +182,7 @@ public class CollectableBehavior : MonoBehaviourPunCallbacks
                 {
                     _basket.material = failureBasketMaterial;
                     _rim.material = failureRimMaterial;
-                    if (photonView.IsMine)
+                    if (Object.HasStateAuthority)
                     {
                         timePassed = 0;
                         _audioManager.PlayMissedSound();
@@ -187,24 +190,14 @@ public class CollectableBehavior : MonoBehaviourPunCallbacks
                     }
                 }
             }
-            // Master / Client destroy their own object
-            if (photonView.AmOwner || photonView.IsMine)
-            {
-                PhotonNetwork.Destroy(this.gameObject);
-            }
+
+            Runner.Despawn(Object);
         }
     }
 
-    /// <summary>
-    /// Override parent method. This method destroys the collectable that corresponds to the leaving player.
-    /// </summary>
-    public override void OnPlayerLeftRoom(Player player)
+    private void OnPlayerDisconnected(NetworkPlayer player)
     {
-        base.OnPlayerLeftRoom(player);
-        if(!player.IsMasterClient && playerIndex == 1)
-        {
-            PhotonNetwork.Destroy(this.gameObject);
-        }
+      Runner.Despawn(Object);
     }
 
 }

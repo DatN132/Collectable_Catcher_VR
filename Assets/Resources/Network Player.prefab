@@ -2297,7 +2297,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 8760193826250047738}
-  - component: {fileID: 6949505933091746172}
+  - component: {fileID: 1377544407553703406}
   m_Layer: 12
   m_Name: Right Hand
   m_TagString: RightHand
@@ -2321,7 +2321,7 @@ Transform:
   m_Father: {fileID: 1817826640562452076}
   m_RootOrder: 1
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &6949505933091746172
+--- !u!114 &1377544407553703406
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -2330,13 +2330,25 @@ MonoBehaviour:
   m_GameObject: {fileID: 6824098119187978505}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 627855c7f81362d41938ffe0b1475957, type: 3}
+  m_Script: {fileID: 158639473, guid: e725a070cec140c4caffb81624c8c787, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  m_SynchronizePosition: 1
-  m_SynchronizeRotation: 1
-  m_SynchronizeScale: 0
-  m_UseLocal: 1
+  _interpolationDataSource: 2
+  InterpolationSpace: 0
+  InterpolationTarget: {fileID: 7901923110420624513}
+  InterpolateErrorCorrection: 1
+  InterpolatedErrorCorrectionSettings:
+    MinRate: 3.3
+    MaxRate: 10
+    PosBlendStart: 0.25
+    PosBlendEnd: 1
+    PosMinCorrection: 0.025
+    PosTeleportDistance: 2
+    RotBlendStart: 0.1
+    RotBlendEnd: 0.5
+    RotTeleportRadians: 1.5
+  UseLegacySharedModeInterpolation: 0
+  TargetInterpolationDelay: 0.03
 --- !u!1 &6979384639610706960
 GameObject:
   m_ObjectHideFlags: 0
@@ -2518,7 +2530,7 @@ GameObject:
   m_Component:
   - component: {fileID: 7901923110420624513}
   - component: {fileID: 4272062164047490811}
-  - component: {fileID: 2377501461596282753}
+  - component: {fileID: 3577320638892487044}
   m_Layer: 12
   m_Name: RightHand
   m_TagString: RightHand
@@ -2545,7 +2557,7 @@ Transform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: -90}
 --- !u!95 &4272062164047490811
 Animator:
-  serializedVersion: 4
+  serializedVersion: 5
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
@@ -2562,8 +2574,8 @@ Animator:
   m_WarningMessage: 
   m_HasTransformHierarchy: 1
   m_AllowConstantClipSamplingOptimization: 1
-  m_KeepAnimatorControllerStateOnDisable: 0
---- !u!114 &2377501461596282753
+  m_KeepAnimatorStateOnDisable: 0
+--- !u!114 &3577320638892487044
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -2572,25 +2584,27 @@ MonoBehaviour:
   m_GameObject: {fileID: 7413652448845393467}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 9b8c4a61274f60b4ea5fb4299cfdbf14, type: 3}
+  m_Script: {fileID: 506319458, guid: e725a070cec140c4caffb81624c8c787, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  ShowLayerWeightsInspector: 1
-  ShowParameterInspector: 1
-  m_SynchronizeParameters:
-  - Type: 1
-    SynchronizeType: 2
-    Name: Trigger
-  - Type: 1
-    SynchronizeType: 2
-    Name: Grip
-  m_SynchronizeLayers:
-  - SynchronizeType: 0
-    LayerIndex: 0
-  - SynchronizeType: 0
-    LayerIndex: 1
-  - SynchronizeType: 0
-    LayerIndex: 2
+  _interpolationDataSource: 2
+  Animator: {fileID: 4272062164047490811}
+  TotalWords: 4
+  SyncSettings: 79
+  FloatAccuracy:
+    _value: 0
+    _inverse: 0
+    _hash: -814817977
+  TimeAccuracy:
+    _value: 0
+    _inverse: 0
+    _hash: 1061325578
+  WeightAccuracy:
+    _value: 0
+    _inverse: 0
+    _hash: -814817977
+  StateHashes: 00000000958341e2904389458a18fce4c52431940b4d6231078598f3
+  TriggerHashes: 00000000
 --- !u!1 &7502046829320482208
 GameObject:
   m_ObjectHideFlags: 0
@@ -2600,7 +2614,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 2749555461914817962}
-  - component: {fileID: 5674038110751151397}
+  - component: {fileID: 9011398425629396346}
   m_Layer: 12
   m_Name: Left Hand
   m_TagString: LeftHand
@@ -2624,7 +2638,7 @@ Transform:
   m_Father: {fileID: 1817826640562452076}
   m_RootOrder: 0
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &5674038110751151397
+--- !u!114 &9011398425629396346
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -2633,13 +2647,25 @@ MonoBehaviour:
   m_GameObject: {fileID: 7502046829320482208}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 627855c7f81362d41938ffe0b1475957, type: 3}
+  m_Script: {fileID: 158639473, guid: e725a070cec140c4caffb81624c8c787, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  m_SynchronizePosition: 1
-  m_SynchronizeRotation: 1
-  m_SynchronizeScale: 0
-  m_UseLocal: 1
+  _interpolationDataSource: 2
+  InterpolationSpace: 0
+  InterpolationTarget: {fileID: 7130343604699131848}
+  InterpolateErrorCorrection: 1
+  InterpolatedErrorCorrectionSettings:
+    MinRate: 3.3
+    MaxRate: 10
+    PosBlendStart: 0.25
+    PosBlendEnd: 1
+    PosMinCorrection: 0.025
+    PosTeleportDistance: 2
+    RotBlendStart: 0.1
+    RotBlendEnd: 0.5
+    RotTeleportRadians: 1.5
+  UseLegacySharedModeInterpolation: 0
+  TargetInterpolationDelay: 0.03
 --- !u!1 &7620021396615312754
 GameObject:
   m_ObjectHideFlags: 0
@@ -2650,7 +2676,7 @@ GameObject:
   m_Component:
   - component: {fileID: 7130343604699131848}
   - component: {fileID: 7313468419866396735}
-  - component: {fileID: 4343409350683244584}
+  - component: {fileID: 7413426652697616676}
   m_Layer: 12
   m_Name: LeftHand
   m_TagString: LeftHand
@@ -2677,7 +2703,7 @@ Transform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 90}
 --- !u!95 &7313468419866396735
 Animator:
-  serializedVersion: 4
+  serializedVersion: 5
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
@@ -2694,8 +2720,8 @@ Animator:
   m_WarningMessage: 
   m_HasTransformHierarchy: 1
   m_AllowConstantClipSamplingOptimization: 1
-  m_KeepAnimatorControllerStateOnDisable: 0
---- !u!114 &4343409350683244584
+  m_KeepAnimatorStateOnDisable: 0
+--- !u!114 &7413426652697616676
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -2704,25 +2730,27 @@ MonoBehaviour:
   m_GameObject: {fileID: 7620021396615312754}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 9b8c4a61274f60b4ea5fb4299cfdbf14, type: 3}
+  m_Script: {fileID: 506319458, guid: e725a070cec140c4caffb81624c8c787, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  ShowLayerWeightsInspector: 1
-  ShowParameterInspector: 1
-  m_SynchronizeParameters:
-  - Type: 1
-    SynchronizeType: 2
-    Name: Trigger
-  - Type: 1
-    SynchronizeType: 2
-    Name: Grip
-  m_SynchronizeLayers:
-  - SynchronizeType: 0
-    LayerIndex: 0
-  - SynchronizeType: 0
-    LayerIndex: 1
-  - SynchronizeType: 0
-    LayerIndex: 2
+  _interpolationDataSource: 2
+  Animator: {fileID: 7313468419866396735}
+  TotalWords: 4
+  SyncSettings: 79
+  FloatAccuracy:
+    _value: 0
+    _inverse: 0
+    _hash: -814817977
+  TimeAccuracy:
+    _value: 0
+    _inverse: 0
+    _hash: 1061325578
+  WeightAccuracy:
+    _value: 0
+    _inverse: 0
+    _hash: -814817977
+  StateHashes: 00000000958341e2904389458a18fce4c52431940b4d6231078598f3
+  TriggerHashes: 00000000
 --- !u!1 &7729557716896653190
 GameObject:
   m_ObjectHideFlags: 0
@@ -3501,8 +3529,8 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1817826640562452076}
-  - component: {fileID: 1114022773048661589}
   - component: {fileID: 5964226532453348915}
+  - component: {fileID: 6420092134031845420}
   m_Layer: 12
   m_Name: Network Player
   m_TagString: Untagged
@@ -3527,32 +3555,6 @@ Transform:
   m_Father: {fileID: 0}
   m_RootOrder: 0
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &1114022773048661589
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 9070114333080570782}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: aa584fbee541324448dd18d8409c7a41, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  ObservedComponentsFoldoutOpen: 1
-  Group: 0
-  prefixField: -1
-  Synchronization: 2
-  OwnershipTransfer: 0
-  observableSearch: 2
-  ObservedComponents:
-  - {fileID: 5674038110751151397}
-  - {fileID: 6949505933091746172}
-  - {fileID: 4343409350683244584}
-  - {fileID: 2377501461596282753}
-  sceneViewId: 0
-  InstantiationId: 0
-  isRuntimeInstantiated: 0
 --- !u!114 &5964226532453348915
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -3565,8 +3567,37 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: dd3c9ef7718085242b855767cf3ab0c6, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  _interpolationDataSource: 0
   leftHand: {fileID: 2749555461914817962}
   rightHand: {fileID: 8760193826250047738}
+--- !u!114 &6420092134031845420
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 9070114333080570782}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: -1552182283, guid: e725a070cec140c4caffb81624c8c787, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  ObjectInterest: 1
+  DefaultInterestGroups: []
+  DestroyWhenStateAuthorityLeaves: 1
+  AllowStateAuthorityOverride: 1
+  AoiPositionSource: {fileID: 0}
+  Flags: 2305
+  NetworkGuid:
+    RawGuidValue: 3c030cd3b25d43e46a533d8ebe4ad849
+  NestedObjects: []
+  NetworkedBehaviours:
+  - {fileID: 5964226532453348915}
+  - {fileID: 9011398425629396346}
+  - {fileID: 7413426652697616676}
+  - {fileID: 1377544407553703406}
+  - {fileID: 3577320638892487044}
+  SimulationBehaviours: []
 --- !u!1 &9152869131274831471
 GameObject:
   m_ObjectHideFlags: 0

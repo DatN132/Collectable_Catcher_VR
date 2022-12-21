@@ -3,58 +3,31 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
-using Photon.Pun;
-using Photon.Realtime;
+using Fusion;
 using UnityEngine.SceneManagement;
 using TMPro;
 using System.Linq;
+using Fusion.Sockets;
 
 /// <summary>
 /// This class handles communication with the server, creating rooms, and putting users into rooms
 /// </summary>
-public class NetworkManager : MonoBehaviourPunCallbacks
+public class NetworkManager : NetworkBehaviour, INetworkRunnerCallbacks
 {
   /// <summary>
   /// Variable that determines whether the room's setting is set to Multiplayer
   /// </summary>
   public static bool isMultiplayer = false;
 
-  /// <summary>
-  /// A List that holds the number of available room that user can join/create
-  /// </summary>
-  /// <typeparam name="int">Room number</typeparam>
-  /// <returns></returns>
-  public List<int> availableRoom = new List<int>(){1,2,3,4,5,6,7,8,9,10};
+  private NetworkRunner networkRunner;
+  private MainMenu mainMenu;
+
+
   void Awake()
   {
+    mainMenu = GameObject.Find("UI Canvas").GetComponent<MainMenu>();
+    networkRunner = gameObject.AddComponent<NetworkRunner>();
     isMultiplayer = false;
-    ConnectToServer();
-  }
-
-  private void ConnectToServer() 
-  {
-    PhotonNetwork.ConnectUsingSettings();
-    Debug.Log("Trying to connect to server ... ");
-  }
-
-  /// <summary>
-  /// Override parent method. As user connect to the server, he is immediately joining the lobby.
-  /// </summary>
-  public override void OnConnectedToMaster()
-  {
-    Debug.Log("Connected to server");
-    base.OnConnectedToMaster();
-    PhotonNetwork.JoinLobby();
-    PhotonNetwork.AutomaticallySyncScene = true;
-  }
-
-  /// <summary>
-  /// Override parent method. This was mainly used for debugging
-  /// </summary>
-  public override void OnJoinedLobby()
-  {
-    base.OnJoinedLobby();
-    Debug.Log("Joined Lobby");
   }
 
   /// <summary>
@@ -62,45 +35,146 @@ public class NetworkManager : MonoBehaviourPunCallbacks
   /// </summary>
   /// <param name="roomNumber">Room number that is used to set the name of the room.</param>
   /// <returns>Returns true if the room creation request is sucessfully put into the network queue. Returns false otherwise.</returns>
-  public bool InitializeRoom(int roomNumber)
+  public async void InitializeSinglePlayerRoom()
   {
-    RoomOptions roomOptions = new RoomOptions();
-    roomOptions.MaxPlayers = (byte)1;
-    
-    roomOptions.IsVisible = false;
-    roomOptions.IsOpen = true;
-    return PhotonNetwork.CreateRoom(roomNumber.ToString(), roomOptions, TypedLobby.Default);
+    StartCoroutine(mainMenu.SetNotification("Creating a room", 0f));
+    StartGameResult res = await networkRunner.StartGame(new StartGameArgs()
+    {
+      GameMode = GameMode.Single,
+      PlayerCount = 1,
+    });
+
+    if (!res.Ok)
+    {
+      StartCoroutine(mainMenu.SetNotification("Failed to create room due network error!", 0f));
+      Debug.Log("Failed to create a single player room");
+    }
   }
 
   /// <summary>
   /// This method allows user to join a random room in multiplayer mode
   /// </summary>
   /// <returns>Returns true if the room joining request is sucessfully put into the network queue. Returns false otherwise.</returns>
-  public bool JoinRoom(int roomNumber)
+  public async void JoinRandomRoom()
   {
-    RoomOptions roomOptions = new RoomOptions();
-    roomOptions.MaxPlayers = (byte)2;   
-    roomOptions.IsVisible = true;
-    roomOptions.IsOpen = true;
-    return PhotonNetwork.JoinRandomOrCreateRoom(null, (byte)2, MatchmakingMode.FillRoom, TypedLobby.Default, null, UnityEngine.Random.Range(0,99999999).ToString(), roomOptions);
+    StartCoroutine(mainMenu.SetNotification("Trying to join a random room", 0f));
+    StartGameResult res = await networkRunner.StartGame(new StartGameArgs()
+    {
+      GameMode = GameMode.Shared,
+      PlayerCount = 2,
+    });
+
+    if (!res.Ok)
+    {
+      StartCoroutine(mainMenu.SetNotification("Failed to create join a room due network error!", 0f));
+      Debug.Log("Failed to join multiplayer room");
+    }
   }
 
-  /// <summary>
-  /// Override parent method. Upon successfully joining a room, the user is immediately teleported into the game scene
-  /// </summary>
-  public override void OnJoinedRoom()
+  // /// <summary>
+  // /// Override parent method. Upon a new player entering the room, load game scene
+  // /// </summary>
+  // /// <param name="newPlayer">New Player that joined the room</param>
+  // public override void OnPlayerEnteredRoom(Player newPlayer)
+  // {
+  //   base.OnPlayerEnteredRoom(newPlayer);
+  //   PhotonNetwork.LoadLevel("GameScene");
+  // }
+
+  public void OnPlayerJoined(NetworkRunner runner, PlayerRef player)
   {
-    Debug.Log("Joined room successfully");
-    base.OnJoinedRoom();
+    Debug.Log("Player joined");
+    if (runner.IsSinglePlayer)
+    {
+      runner.InvokeSceneLoadStart();
+      // runner.SetActiveScene("GameScene");
+      SceneManager.LoadScene("GameScene");
+      runner.InvokeSceneLoadDone();
+    }
+    else if (runner.IsSharedModeMasterClient)
+    {
+      StartCoroutine(mainMenu.SetNotification("You are the first player, your difficulty selection will be used!\nWaiting for other player to join...", 0f));
+    }
+    else
+    {
+      runner.InvokeSceneLoadStart();
+      // networkRunner.SetActiveScene("GameScene");
+      SceneManager.LoadScene("GameScene");
+      runner.InvokeSceneLoadDone();
+    }
   }
 
-  /// <summary>
-  /// Override parent method. Upon a new player entering the room, load game scene
-  /// </summary>
-  /// <param name="newPlayer">New Player that joined the room</param>
-  public override void OnPlayerEnteredRoom(Player newPlayer)
+  public void OnPlayerLeft(NetworkRunner runner, PlayerRef player)
   {
-    base.OnPlayerEnteredRoom(newPlayer);
-    PhotonNetwork.LoadLevel("KaiScene");
+    Debug.Log("Player left");
+  }
+
+  public void OnInput(NetworkRunner runner, NetworkInput input)
+  {
+  }
+
+  public void OnInputMissing(NetworkRunner runner, PlayerRef player, NetworkInput input)
+  {
+    Debug.Log("On Input Missing");
+  }
+
+  public void OnShutdown(NetworkRunner runner, ShutdownReason shutdownReason)
+  {
+    Debug.Log("On Shutdown");
+  }
+
+  public void OnConnectedToServer(NetworkRunner runner)
+  {
+    Debug.Log("Connected To Server");
+  }
+
+  public void OnDisconnectedFromServer(NetworkRunner runner)
+  {
+    Debug.Log("Disconnect From Server");
+  }
+
+  public void OnConnectRequest(NetworkRunner runner, NetworkRunnerCallbackArgs.ConnectRequest request, byte[] token)
+  {
+    Debug.Log("Connect Request Received");
+  }
+
+  public void OnConnectFailed(NetworkRunner runner, NetAddress remoteAddress, NetConnectFailedReason reason)
+  {
+    Debug.Log("Connect Failed");
+  }
+
+  public void OnUserSimulationMessage(NetworkRunner runner, SimulationMessagePtr message)
+  {
+    Debug.Log("On User Simulation Message");
+  }
+
+  public void OnSessionListUpdated(NetworkRunner runner, List<SessionInfo> sessionList)
+  {
+    Debug.Log("On Session List Updated");
+  }
+
+  public void OnCustomAuthenticationResponse(NetworkRunner runner, Dictionary<string, object> data)
+  {
+    Debug.Log("On Custom Authentication Response");
+  }
+
+  public void OnHostMigration(NetworkRunner runner, HostMigrationToken hostMigrationToken)
+  {
+    Debug.Log("On Host Migration");
+  }
+
+  public void OnReliableDataReceived(NetworkRunner runner, PlayerRef player, ArraySegment<byte> data)
+  {
+    Debug.Log("On Reliable Data Received");
+  }
+
+  public void OnSceneLoadDone(NetworkRunner runner)
+  {
+    Debug.Log("On Scene Load Done");
+  }
+
+  public void OnSceneLoadStart(NetworkRunner runner)
+  {
+    Debug.Log("On Scene Load Start");
   }
 }

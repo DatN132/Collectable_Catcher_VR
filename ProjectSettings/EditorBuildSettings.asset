@@ -9,7 +9,7 @@ EditorBuildSettings:
     path: Assets/Scenes/MainMenu.unity
     guid: 78000bc60b2ba41b0a9e2fb7a39bb120
   - enabled: 1
-    path: Assets/Scenes/KaiScene.unity
+    path: Assets/Scenes/GameScene.unity
     guid: 535d2bd025b2d2c4da6af8319da670c3
   - enabled: 1
     path: Assets/Scenes/OwnerLeftRoom.unity

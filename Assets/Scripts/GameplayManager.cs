@@ -4,12 +4,12 @@ using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
 using UnityEngine.XR.Interaction.Toolkit;
-using Photon.Pun;
+using Fusion;
 
 /// <summary>
 /// This class handles pointing for the player.
 /// </summary>
-public class GameplayManager : MonoBehaviourPunCallbacks
+public class GameplayManager : NetworkBehaviour
 {
 	private MainMenuAudioManager audioManager;
 	private AudioManager nonMainMenuAudioManager;
@@ -71,9 +71,8 @@ public class GameplayManager : MonoBehaviourPunCallbacks
 	/// Override the on enable method of MonoBehaviourPunCallbacks.
 	/// Instantiates necessary variables.
 	/// </summary>
-	public override void OnEnable()
+	void OnEnable()
 	{
-		base.OnEnable();
 		audioManager = GameObject.Find("UISoundManager").GetComponent<MainMenuAudioManager>();
 		nonMainMenuAudioManager = GameObject.Find("SoundManager").GetComponent<AudioManager>();
 		networkVar = GameObject.Find("Network Interaction Statuses").GetComponent<NetworkVariablesAndReferences>();
@@ -86,7 +85,7 @@ public class GameplayManager : MonoBehaviourPunCallbacks
 		scoreCanvas = new GameObject[2];
 		health = new int[2];
 		
-		if (PhotonNetwork.IsMasterClient)
+		if (Runner.IsSinglePlayer || Runner.IsSharedModeMasterClient)
 		{
 			localPlayerIndex = 0;
 			otherPlayerIndex = 1;
@@ -96,8 +95,11 @@ public class GameplayManager : MonoBehaviourPunCallbacks
 			localPlayerIndex = 1;
 			otherPlayerIndex = 0;
 		}
-		basket = PhotonView.Find(networkVar.basketIDs[localPlayerIndex]).GetComponent<TwoHandGrabInteractable>();
-		tombstone = PhotonView.Find(networkVar.tombstoneIDs[localPlayerIndex]).gameObject;
+		NetworkObject obj;
+		Runner.TryFindObject(networkVar.basketIDs[localPlayerIndex], out obj);
+		basket = obj.GetComponent<TwoHandGrabInteractable>();
+		Runner.TryFindObject(networkVar.tombstoneIDs[localPlayerIndex], out obj);
+		tombstone = obj.gameObject;
 		graveUpright[localPlayerIndex] = tombstone.transform.Find("Game Gravestone Upright").gameObject;
 		graveDown[localPlayerIndex] = tombstone.transform.Find("Game Gravestone Down").gameObject;
 		Transform hearts = tombstone.transform.Find("Hearts");
@@ -116,7 +118,6 @@ public class GameplayManager : MonoBehaviourPunCallbacks
 		scoreText[localPlayerIndex]  = scoreCanvas[localPlayerIndex].transform.Find("Score Value Label").GetComponent<TextMeshProUGUI>();
 		deterrentCanvas = tombstone.transform.Find("Deterrent_Bomb").GetChild(0).gameObject;
 		deterrentCount[localPlayerIndex] = deterrentCanvas.transform.Find("Deterrent Count").GetComponent<TextMeshProUGUI>();
-		scores[localPlayerIndex] = 0;
 		health[localPlayerIndex] = 0;
 		scoreText[localPlayerIndex].text = $"{scores[localPlayerIndex]}";
 		gameStreak = 0;
@@ -125,7 +126,8 @@ public class GameplayManager : MonoBehaviourPunCallbacks
 
 		if (NetworkManager.isMultiplayer)
 		{
-			GameObject otherTombstone = PhotonView.Find(networkVar.tombstoneIDs[otherPlayerIndex]).gameObject;
+			Runner.TryFindObject(networkVar.tombstoneIDs[otherPlayerIndex], out obj);
+			GameObject otherTombstone = obj.gameObject;
 			graveUpright[otherPlayerIndex] = otherTombstone.transform.Find("Game Gravestone Upright").gameObject;
 			graveDown[otherPlayerIndex] = otherTombstone.transform.Find("Game Gravestone Down").gameObject;
 			deterrentCount[otherPlayerIndex] = otherTombstone.transform.Find("Deterrent_Bomb").GetChild(0).Find("Deterrent Count").GetComponent<TextMeshProUGUI>();
@@ -141,10 +143,9 @@ public class GameplayManager : MonoBehaviourPunCallbacks
 			heart5[otherPlayerIndex] = otherHearts.Find("Heart 5").gameObject;
 			allHearts[otherPlayerIndex] = otherHearts.gameObject;
 			health[otherPlayerIndex] = 0;
-			photonView.RPC("SyncScore", RpcTarget.All, scores[localPlayerIndex], localPlayerIndex);
 		}
-
-		photonView.RPC("SyncHearts", RpcTarget.All, 3, localPlayerIndex);
+		RPC_SyncScore(0, localPlayerIndex);
+		RPC_SyncHearts(3, localPlayerIndex);
 
 		if (streakToDeterrent == 0)
 		{
@@ -162,8 +163,7 @@ public class GameplayManager : MonoBehaviourPunCallbacks
 		 }
 		float percentage = basket.transform.localScale.x / basket.maxScale;
 		int scoreIncrease = (int)(1f + (5f * (1f - percentage)));
-		scores[localPlayerIndex] += scoreIncrease;
-		photonView.RPC("SyncScore", RpcTarget.All, scores[localPlayerIndex], localPlayerIndex);
+		RPC_SyncScore(scores[localPlayerIndex] + scoreIncrease, localPlayerIndex);
 		gameStreak++;
 		if (NetworkManager.isMultiplayer && (gameStreak % streakToDeterrent == 0))
 		{
@@ -187,11 +187,11 @@ public class GameplayManager : MonoBehaviourPunCallbacks
 	/// </summary>
 	public void UpdateDeterrentCountText()
 	{
-		photonView.RPC("SyncDeterrentCount", RpcTarget.All, deterrentsAvailable[localPlayerIndex], localPlayerIndex);
+		RPC_SyncDeterrentCount(deterrentsAvailable[localPlayerIndex], localPlayerIndex);
 	}
 
-	[PunRPC]
-	private void SyncHearts(int heartCount, int playerIndex)
+	[Rpc(sources: RpcSources.All, targets: RpcTargets.All)]
+	private void RPC_SyncHearts(int heartCount, int playerIndex)
 	{
 		health[playerIndex] = heartCount;
 		switch(heartCount)
@@ -207,7 +207,7 @@ public class GameplayManager : MonoBehaviourPunCallbacks
 				graveUpright[playerIndex].SetActive(false);
 				graveDown[playerIndex].SetActive(true);
 				deterrentCount[playerIndex].transform.parent.parent.gameObject.SetActive(false);
-				if (PhotonNetwork.IsMasterClient)
+				if (Runner.IsSinglePlayer || Runner.IsSharedModeMasterClient)
         {
 					networkVar.UpdateIsGameOver(true);
 				}
@@ -250,15 +250,15 @@ public class GameplayManager : MonoBehaviourPunCallbacks
 		}
 	}
 
-	[PunRPC]
-	private void SyncDeterrentCount(int newData, int playerIndex)
+	[Rpc(sources: RpcSources.All, targets: RpcTargets.All)]
+	private void RPC_SyncDeterrentCount(int newData, int playerIndex)
 	{
 		deterrentsAvailable[playerIndex] = newData;
 		deterrentCount[playerIndex].text = $"{deterrentsAvailable[playerIndex]}";
 	}
 
-	[PunRPC]
-	private void SyncScore(int newScore, int playerIndex)
+	[Rpc(sources: RpcSources.All, targets: RpcTargets.All)]
+	private void RPC_SyncScore(int newScore, int playerIndex)
 	{
 		scores[playerIndex] = newScore;
 		scoreText[playerIndex].text = $"{scores[playerIndex]}";
@@ -285,7 +285,7 @@ public class GameplayManager : MonoBehaviourPunCallbacks
 		{
 			return;
 		}
-		photonView.RPC("SyncHearts", RpcTarget.All, health[localPlayerIndex] - 1, localPlayerIndex);
+		RPC_SyncHearts(health[localPlayerIndex] - 1, localPlayerIndex);
 		gameStreak = 0;
 	}
 
@@ -301,7 +301,7 @@ public class GameplayManager : MonoBehaviourPunCallbacks
 		{
 			return;
 		}
-		photonView.RPC("SyncHearts", RpcTarget.All, health[localPlayerIndex] + 1, localPlayerIndex);
+		RPC_SyncHearts(health[localPlayerIndex] + 1, localPlayerIndex);
 	}
 	
 	/// <summary>
@@ -312,7 +312,7 @@ public class GameplayManager : MonoBehaviourPunCallbacks
 		nonMainMenuAudioManager.StopBackgroundMusic();
 		audioManager.PlayGameOverSound();
 		GameplayManager.gameIsOver = true;
-		
+
 		// give server a bit of time to make sure the final scores are synced before displaying gameover panel
 		StartCoroutine(MoveGameOverCanvasToStart());
 	}

@@ -5,12 +5,14 @@ using UnityEngine.SceneManagement;
 using UnityEngine.XR.Interaction.Toolkit;
 using UnityEngine.UI;
 using TMPro;
-using Photon.Pun;
+using Fusion;
+using System.Linq;
+
 
 /// <summary>
 /// This class handles the behaviour of the game when game is over.
 /// </summary>
-public class GameOver : MonoBehaviour {
+public class GameOver : NetworkBehaviour {
 	/// <summary>
 	/// Manages the audio for the game over behaviors
 	/// </summary>
@@ -19,7 +21,7 @@ public class GameOver : MonoBehaviour {
 	/// <summary>
 	/// The canvas that contains the game over panel
 	/// </summary>
-	private GameObject uiCanvas;
+	private NetworkObject uiCanvas;
 	/// <summary>
 	/// The label indicating if the player lost of won their game
 	/// </summary>
@@ -75,13 +77,13 @@ public class GameOver : MonoBehaviour {
 		animateButtonsToStart = false;
 		fadeButtonIn = false;
 		audioManager = GameObject.Find("UISoundManager").GetComponent<MainMenuAudioManager>();
-		uiCanvas = PhotonNetwork.Instantiate("GameOverPanel", new Vector3(userPosition.x, userPosition.y, 0.07f), Quaternion.identity);
+		uiCanvas = Runner.Spawn((GameObject)Resources.Load("GameOverPanel", typeof(GameObject)), new Vector3(userPosition.x, userPosition.y, 0.07f), Quaternion.identity, Runner.LocalPlayer);
 		uiCanvas.transform.localScale = new Vector3(0.0f, 0.0f, 0.0f);
 		gameLabel = uiCanvas.transform.Find("Game Title").gameObject;
 		finalScoreLabel = uiCanvas.transform.Find("Game Final Score").gameObject;
 		scoreText = finalScoreLabel.GetComponent<TextMeshProUGUI>();
 		mainMenuButton = uiCanvas.transform.Find("Main Menu Button").gameObject;
-		if (PhotonNetwork.IsMasterClient)
+		if (Runner.IsSinglePlayer || Runner.IsSharedModeMasterClient)
 		{
 			localPlayerIndex = 0;
 			otherPlayerIndex = 1;
@@ -120,7 +122,7 @@ public class GameOver : MonoBehaviour {
 				mainMenuButton.SetActive(true);
 				if (NetworkManager.isMultiplayer)
 				{
-					if (PhotonNetwork.CurrentRoom.PlayerCount < 2)
+					if (Runner.ActivePlayers.Count() < 2)
 					{
 						scoreText.text = "Other Player Left\nYou Win!!!";
 					}
@@ -174,9 +176,10 @@ public class GameOver : MonoBehaviour {
 	/// <summary>
 	/// Leaves the multiplayer room and opens the Main Menu scene
 	/// </summary>
-	public void OpenMainMenu() {
+	public void OpenMainMenu()
+	{
 		audioManager.PlayButtonClickSound();
-		PhotonNetwork.LeaveRoom();
+		Runner.Shutdown();
 		SceneManager.LoadScene("MainMenu");
 	}
 }

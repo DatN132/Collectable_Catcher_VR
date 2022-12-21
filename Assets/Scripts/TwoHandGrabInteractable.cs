@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.XR.Interaction.Toolkit;
-using Photon.Pun;
+using Fusion;
 
 // reference https://www.youtube.com/watch?v=Ie0-oKN3Lq0
 // need to modify current prefab to use
@@ -119,13 +119,18 @@ public class TwoHandGrabInteractable : XRGrabInteractable
             {
                 networkVar.UpdatePlayerGrabbed();
                 networkVarSet = true;
-                if (PhotonNetwork.IsMasterClient)
+                NetworkRunner Runner = GetComponent<NetworkRunner>();
+                if (Runner.IsSharedModeMasterClient)
                 {
-                    PhotonNetwork.Destroy(PhotonView.Find(networkVar.shadowBasketIDs[0]).gameObject);
+                    NetworkObject obj;
+                    Runner.TryFindObject(networkVar.shadowBasketIDs[0], out obj);
+                    Runner.Despawn(obj);
                 }
                 else
                 {
-                    PhotonNetwork.Destroy(PhotonView.Find(networkVar.shadowBasketIDs[1]).gameObject);
+                    NetworkObject obj;
+                    Runner.TryFindObject(networkVar.shadowBasketIDs[1], out obj);
+                    Runner.Despawn(obj);
                 }
             }
         }

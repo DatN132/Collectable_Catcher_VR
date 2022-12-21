@@ -14,8 +14,8 @@ GameObject:
   - component: {fileID: 3450273491526856295}
   - component: {fileID: 4176303015636873730}
   - component: {fileID: 5349411165093361281}
-  - component: {fileID: 3871036123343921848}
-  - component: {fileID: 7147725694658380399}
+  - component: {fileID: 4602339681011360242}
+  - component: {fileID: 1077819008497632629}
   m_Layer: 0
   m_Name: Deterrent_Bomb
   m_TagString: Deterrent
@@ -115,6 +115,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ef465964e8b4903468d588fcdddfe5ad, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  _interpolationDataSource: 0
   defaultBasketMaterial: {fileID: 2100000, guid: 081e4816add2d024cbfa48d939d0643f,
     type: 2}
   defaultRimMaterial: {fileID: 2100000, guid: 4fb23aef4c909cd4ba6a2362c72a2e69, type: 2}
@@ -138,10 +139,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a05429464ca5e924580cd9bec57ccf7e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  _interpolationDataSource: 0
   pathCreator: {fileID: 0}
   endOfPathInstruction: 2
   speed: 5
---- !u!114 &3871036123343921848
+--- !u!114 &4602339681011360242
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -150,21 +152,24 @@ MonoBehaviour:
   m_GameObject: {fileID: 3349667564578458653}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: aa584fbee541324448dd18d8409c7a41, type: 3}
+  m_Script: {fileID: -1552182283, guid: e725a070cec140c4caffb81624c8c787, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  ObservedComponentsFoldoutOpen: 1
-  Group: 0
-  prefixField: -1
-  Synchronization: 2
-  OwnershipTransfer: 0
-  observableSearch: 2
-  ObservedComponents:
-  - {fileID: 7147725694658380399}
-  sceneViewId: 0
-  InstantiationId: 0
-  isRuntimeInstantiated: 0
---- !u!114 &7147725694658380399
+  ObjectInterest: 1
+  DefaultInterestGroups: []
+  DestroyWhenStateAuthorityLeaves: 1
+  AllowStateAuthorityOverride: 1
+  AoiPositionSource: {fileID: 0}
+  Flags: 2305
+  NetworkGuid:
+    RawGuidValue: 69fff6a75db5f04489c8d41ecabbd1ee
+  NestedObjects: []
+  NetworkedBehaviours:
+  - {fileID: 4176303015636873730}
+  - {fileID: 5349411165093361281}
+  - {fileID: 1077819008497632629}
+  SimulationBehaviours: []
+--- !u!114 &1077819008497632629
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -173,13 +178,25 @@ MonoBehaviour:
   m_GameObject: {fileID: 3349667564578458653}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 627855c7f81362d41938ffe0b1475957, type: 3}
+  m_Script: {fileID: 158639473, guid: e725a070cec140c4caffb81624c8c787, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  m_SynchronizePosition: 1
-  m_SynchronizeRotation: 1
-  m_SynchronizeScale: 0
-  m_UseLocal: 1
+  _interpolationDataSource: 2
+  InterpolationSpace: 0
+  InterpolationTarget: {fileID: 2681814737748530855}
+  InterpolateErrorCorrection: 1
+  InterpolatedErrorCorrectionSettings:
+    MinRate: 3.3
+    MaxRate: 10
+    PosBlendStart: 0.25
+    PosBlendEnd: 1
+    PosMinCorrection: 0.025
+    PosTeleportDistance: 2
+    RotBlendStart: 0.1
+    RotBlendEnd: 0.5
+    RotTeleportRadians: 1.5
+  UseLegacySharedModeInterpolation: 0
+  TargetInterpolationDelay: 0.03
 --- !u!1 &9121780403141552886
 GameObject:
   m_ObjectHideFlags: 0
